@@ -21,7 +21,7 @@ MAX = Maximum Values
 I am not going to specifically calculate the True Range and the Average True Range since we have it built for us [MQL Docs](https://www.mql5.com/en/docs/indicators/iatr)
 In order to obtain the ATR from TR we need to smooth the TR for an example using a Simple Moving Average, we can use any other moving average since there are no fundamentals rules into smoothing the TR
 
-*** After being able to obtain the ATR we need to start with execution in order to start executing consider the below cases  ***
+**After being able to obtain the ATR we need to start with execution in order to start executing consider the below cases**
 
 ## Understanding the implementation
 In order to be able to start drawing the SuperTrend bands we need to be able to calculate the bands postions below and above the cadel sticks.
