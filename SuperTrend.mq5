@@ -8,80 +8,77 @@
 #property indicator_separate_window
 #property indicator_buffers 1
 #property indicator_plots   1
-//---- plot MA
-#property indicator_label1  "SuperTrend"
-#property indicator_type1   DRAW_LINE
-#property indicator_color1  clrRed
-#property indicator_style1  STYLE_SOLID
+// Input Variables
+input int lookbackPeriod = 10;
 // Global Variables
-MqlParam indicatorParameters[];
-
 string pairSymbol = Symbol();
-
-int lookbackPeriod = 10;
 int multiplier = 0;
 int atrHandler;
-//+------------------------------------------------------------------+
-//| Custom indicator initialization function                         |
-//+------------------------------------------------------------------+
+
+/*
+   Initialize indicator
+*/
 int OnInit()
-  {
+{
    
-   int parameterCount = 1;
-   ArrayResize(indicatorParameters, parameterCount);
-
-   if (pairSymbol == NULL) Symbol();
-
-   indicatorParameters[0].type = TYPE_INT;
-   indicatorParameters[0].integer_value = atrHandler; //lookback period
-   
-   atrHandler = IndicatorCreate(pairSymbol, PERIOD_CURRENT, IND_ATR, parameterCount, indicatorParameters);
+   averageTrueRangeIndicatorInit(atrHandler, lookbackPeriod, pairSymbol);
 
    if (atrHandler == INVALID_HANDLE)
    {
-      Print("EA Failed to create a moving average!");
+      Print("An error happened while copy indicator buffer data: ", GetLastError());
       return (INIT_FAILED);
    }
    
    return(INIT_SUCCEEDED);
-  }
-//+------------------------------------------------------------------+
-//| Custom indicator iteration function                              |
-//+------------------------------------------------------------------+
-int OnCalculate(const int rates_total,
-                const int prev_calculated,
-                const datetime &time[],
-                const double &open[],
-                const double &high[],
-                const double &low[],
-                const double &close[],
-                const long &tick_volume[],
-                const long &volume[],
-                const int &spread[])
-  {
-//---
-   Print("Current Open: ", open[0]);
+}
+
+/*
+   Perform calculations
+*/
+int OnCalculate(const int rates_total, const int prev_calculated, const int begin, const double& price[])
+{
+   uint dataPoints = 1;
+   double averageTrueRangeData[];
    
-//--- return value of prev_calculated for next call
+   averageTrueRangeIndicatorData(averageTrueRangeData, atrHandler, dataPoints);
+   Print("Current ATR Value: ", averageTrueRangeData[0]);
+   
    return(rates_total);
-  }
-//+------------------------------------------------------------------+
-//| Timer function                                                   |
-//+------------------------------------------------------------------+
-void OnTimer()
-  {
-//---
+}
+
+/*
+   Initialize the ATR indicator
+*/
+void averageTrueRangeIndicatorInit(int& _atrHandler, int _lookbackPeriod, string& _pairSymbol)
+{
+   MqlParam _indicatorParameters[1];
+   int _parameterCount = 1;
    
-  }
-//+------------------------------------------------------------------+
-//| ChartEvent function                                              |
-//+------------------------------------------------------------------+
-void OnChartEvent(const int id,
-                  const long &lparam,
-                  const double &dparam,
-                  const string &sparam)
-  {
-//---
+   if (_pairSymbol == NULL)
+   {
+      _pairSymbol = Symbol();
+   }
+
+   _indicatorParameters[0].type = TYPE_INT; // indicator parameter type (lookback period)
+   _indicatorParameters[0].integer_value = _lookbackPeriod; //lookback period
    
-  }
-//+------------------------------------------------------------------+
+   _atrHandler = IndicatorCreate(_pairSymbol, PERIOD_CURRENT, IND_ATR, _parameterCount, _indicatorParameters);
+}
+
+/*
+   Get ATR Data from the buffer using a handler
+*/
+void averageTrueRangeIndicatorData(double& _averageTrueRangeData[], int& _atrHandler, uint _dataPoints = 1)
+{
+   bool _asSeries = true;
+   
+   if(_atrHandler != INVALID_HANDLE)
+   {
+      ArraySetAsSeries(_averageTrueRangeData, _asSeries);
+      
+      if (CopyBuffer(_atrHandler, 0, 0, _dataPoints, _averageTrueRangeData) == 0)
+      {
+         Print("An error happened while copy indicator buffer data: ", GetLastError());
+      } 
+   }
+}
