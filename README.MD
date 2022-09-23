@@ -24,9 +24,9 @@ In order to obtain the ATR from TR we need to smooth the TR for an example using
 **After being able to obtain the ATR we need to start with execution in order to start executing consider the below cases**
 
 ## Understanding the implementation
-In order to be able to start drawing the SuperTrend bands we need to be able to calculate the bands postions below and above the cadel sticks.
+In order to be able to start drawing the SuperTrend bands we need to be able to calculate the bands postions below and above the candle sticks.
 ### Upper Band
-To calculate the position of an upperband the following calculations are needed.
+To calculate the position of the upper band and lower band the following calculations are needed.
 ```
 
 Upperband = HLA + [Multiplier * ATR 10]
@@ -34,7 +34,7 @@ Lowerband = HLA - [Multiplier * ATR 10]
 
 ```
 1. HLA - High Low Average is calculated as [(High + Low)/2]
-2. Multiplier - Is usually 3. Not sure why however you can change it to suit your needs.
+2. Multiplier - Is usually 3. Not sure why however you can change it to what suit your needs.
 3. ATR 10 - Is an Average True Range with a lookback period of 10
 
 That's it after doing the above calculation in relation with the bands it is then you can start coding you MQL5 indicator!
