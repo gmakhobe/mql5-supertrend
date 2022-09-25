@@ -12,8 +12,9 @@
 input int lookbackPeriod = 10;
 // Global Variables
 string pairSymbol = Symbol();
-int multiplier = 0;
+int multiplier = 3;
 int atrHandler;
+datetime prevousCandlesTime;
 
 /*
    Initialize indicator
@@ -29,7 +30,7 @@ int OnInit()
       return (INIT_FAILED);
    }
    
-   onEventSetTimeHandler();
+   //onEventSetTimeHandler();
    
    return(INIT_SUCCEEDED);
 }
@@ -37,17 +38,61 @@ int OnInit()
 /*
    Perform calculations
 */
-int OnCalculate(const int rates_total, const int prev_calculated, const int begin, const double& price[])
+int OnCalculate(const int rates_total,
+   const int prev_calculated,
+   const datetime& time[],
+   const double& open[],
+   const double& high[],
+   const double& low[],
+   const double& close[],
+   const long& tick_volume[],
+   const long& volume[],
+   const int& spread[])
 {
-   uint dataPoints = 1;
+   uint dataPoints = 2;
    double averageTrueRangeData[];
+   double lowerBand;
+   double upperBand;
+   bool asSeries = true;
    
-   averageTrueRangeIndicatorData(averageTrueRangeData, atrHandler, dataPoints);
-   Print("Current ATR Value: ", averageTrueRangeData[0]);
+   /* Convert Price Data to Price series */
+   ArraySetAsSeries(time,asSeries);
+   ArraySetAsSeries(high,asSeries);
+   ArraySetAsSeries(low,asSeries);
    
+   if (prevousCandleTime != time[1])
+   {
+      averageTrueRangeIndicatorData(averageTrueRangeData, atrHandler, dataPoints);
+      upperBand = getBasicUpperBand(high[0], low[0], multiplier, averageTrueRangeData[0]);
+      lowerBand = getBasicLowerBand(high[0], low[0], multiplier, averageTrueRangeData[0]);
+
+      prevousCandlesTime = time[1];
+   }
+
    return(rates_total);
 }
-
+/*
+   Basic Upper Band
+   Formula: BASIC UPPER BAND = HLA + [ MULTIPLIER * 10-DAY ATR ]
+*/
+double getBasicUpperBand(double _high, double _low, int _multiplier, double _averageTrueRange)
+{
+   double _highLowAverage = (_high + _low) / 2;
+   double _basicBand = _highLowAverage + (multiplier * _averageTrueRange);
+   
+   return _basicBand;
+}
+/*
+   Basic Lower Band
+   Formula: BASIC LOWER BAND = HLA - [ MULTIPLIER * 10-DAY ATR ]
+*/
+double getBasicLowerBand(double _high, double _low, int _multiplier, double _averageTrueRange)
+{
+   double _highLowAverage = (_high + _low) / 2;
+   double _basicBand = _highLowAverage - (multiplier * _averageTrueRange);
+   
+   return _basicBand;
+}
 /*
    Initialize the ATR indicator
 */
