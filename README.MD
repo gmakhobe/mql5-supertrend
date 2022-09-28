@@ -24,7 +24,7 @@ In order to obtain the ATR from TR we need to smooth the TR for an example using
 **After being able to obtain the ATR we need to start with execution in order to start executing consider the below cases**
 
 ## Understanding the implementation
-In order to be able to start drawing the SuperTrend bands we need to be able to calculate the bands postions below and above the candle sticks.
+In order to be able to start drawing the SuperTrend bands we need to be able to calculate the bands positions below and above the candle sticks.
 ### Bands drawing
 To calculate the position of the upper band and lower band the following calculations are needed.
 ```
