@@ -14,7 +14,9 @@ input int lookbackPeriod = 10;
 string pairSymbol = Symbol();
 int multiplier = 3;
 int atrHandler;
-datetime prevousCandlesTime;
+datetime prevousCandleTime;
+double previousUpperBand = 0;
+double previousLowerBand = 0;
 
 /*
    Initialize indicator
@@ -38,7 +40,8 @@ int OnInit()
 /*
    Perform calculations
 */
-int OnCalculate(const int rates_total,
+int OnCalculate(
+   const int rates_total,
    const int prev_calculated,
    const datetime& time[],
    const double& open[],
@@ -65,17 +68,71 @@ int OnCalculate(const int rates_total,
       averageTrueRangeIndicatorData(averageTrueRangeData, atrHandler, dataPoints);
       upperBand = getBasicUpperBand(high[0], low[0], multiplier, averageTrueRangeData[0]);
       lowerBand = getBasicLowerBand(high[0], low[0], multiplier, averageTrueRangeData[0]);
-
-      prevousCandlesTime = time[1];
+      prevousCandleTime = time[1];
+      
+      if (previousUpperBand != 0 && previousLowerBand != 0)
+      {
+         string upperBandName = TimeToString(time[1]) + "_" + TimeToString(time[0]) + "Upperband";
+         string lowerBandName = TimeToString(time[1]) + "-"+TimeToString(time[0]) + "Lowerband";
+         Print("Draw upper band, ", 
+            drawBand(previousUpperBand, 
+               time[1], upperBand,
+               time[0], upperBandName, clrCornflowerBlue), 
+            ", Price=", upperBand, 
+            " time=", time[0]);
+         
+         Print("Draw lower band, ", 
+            drawBand(previousLowerBand, 
+               time[1], lowerBand,
+               time[0], lowerBandName, clrLemonChiffon), 
+            ", Price=", upperBand, 
+            " time=", time[0]);
+      }
+      
+      previousUpperBand = upperBand;
+      previousLowerBand = lowerBand;
    }
 
    return(rates_total);
 }
 /*
+   Draw band and give it a color
+*/
+bool drawBand(
+   double _previousBandValue,
+   datetime _fromDatetime,
+   double _currentBandValue, 
+   datetime _toDatetime,
+   string _bandName,
+   color _bandColor)
+{
+   int _chartId = 0; // current chart
+   
+   bool _isRendered = ObjectCreate(
+      _chartId,
+      _bandName,
+      OBJ_TREND,
+      0,
+      _fromDatetime,
+      _previousBandValue,
+      _toDatetime,
+      _currentBandValue
+   );
+   
+   ObjectSetInteger(_chartId, _bandName, OBJPROP_COLOR, _bandColor);
+   
+   return _isRendered;
+}
+
+/*
    Basic Upper Band
    Formula: BASIC UPPER BAND = HLA + [ MULTIPLIER * 10-DAY ATR ]
 */
-double getBasicUpperBand(double _high, double _low, int _multiplier, double _averageTrueRange)
+double getBasicUpperBand(
+   double _high,
+   double _low,
+   int _multiplier,
+   double _averageTrueRange)
 {
    double _highLowAverage = (_high + _low) / 2;
    double _basicBand = _highLowAverage + (multiplier * _averageTrueRange);
@@ -86,7 +143,11 @@ double getBasicUpperBand(double _high, double _low, int _multiplier, double _ave
    Basic Lower Band
    Formula: BASIC LOWER BAND = HLA - [ MULTIPLIER * 10-DAY ATR ]
 */
-double getBasicLowerBand(double _high, double _low, int _multiplier, double _averageTrueRange)
+double getBasicLowerBand(
+   double _high, 
+   double _low, 
+   int _multiplier, 
+   double _averageTrueRange)
 {
    double _highLowAverage = (_high + _low) / 2;
    double _basicBand = _highLowAverage - (multiplier * _averageTrueRange);
@@ -96,7 +157,10 @@ double getBasicLowerBand(double _high, double _low, int _multiplier, double _ave
 /*
    Initialize the ATR indicator
 */
-void averageTrueRangeIndicatorInit(int& _atrHandler, int _lookbackPeriod, string& _pairSymbol)
+void averageTrueRangeIndicatorInit(
+   int& _atrHandler, 
+   int _lookbackPeriod, 
+   string& _pairSymbol)
 {
    MqlParam _indicatorParameters[1];
    int _parameterCount = 1;
@@ -115,7 +179,10 @@ void averageTrueRangeIndicatorInit(int& _atrHandler, int _lookbackPeriod, string
 /*
    Get ATR Data from the buffer using a handler
 */
-void averageTrueRangeIndicatorData(double& _averageTrueRangeData[], int& _atrHandler, uint _dataPoints = 1)
+void averageTrueRangeIndicatorData(
+   double& _averageTrueRangeData[], 
+   int& _atrHandler, 
+   uint _dataPoints = 1)
 {
    bool _asSeries = true;
    
