@@ -12,12 +12,14 @@
 input int lookbackPeriod = 10;
 // Global Variables
 string pairSymbol = Symbol();
-int multiplier = 3;
+int multiplier = 4;
 int atrHandler;
 datetime prevousCandleTime;
 double previousUpperBand = 0;
 double previousLowerBand = 0;
-
+double previousFinalUpperBand = 0;
+double previousFinalLowerBand = 0;
+double previousSuperTrend = 0;
 /*
    Initialize indicator
 */
@@ -56,44 +58,151 @@ int OnCalculate(
    double averageTrueRangeData[];
    double lowerBand;
    double upperBand;
+   double finalLowerBand;
+   double finalUpperBand;
+   double superTrend = 0;
    bool asSeries = true;
    
    /* Convert Price Data to Price series */
    ArraySetAsSeries(time,asSeries);
    ArraySetAsSeries(high,asSeries);
    ArraySetAsSeries(low,asSeries);
+   ArraySetAsSeries(close,asSeries);
    
    if (prevousCandleTime != time[1])
    {
       averageTrueRangeIndicatorData(averageTrueRangeData, atrHandler, dataPoints);
-      upperBand = getBasicUpperBand(high[0], low[0], multiplier, averageTrueRangeData[0]);
-      lowerBand = getBasicLowerBand(high[0], low[0], multiplier, averageTrueRangeData[0]);
+      upperBand = getBasicUpperBand(high[0], low[0], multiplier, averageTrueRangeData[1]);
+      lowerBand = getBasicLowerBand(high[0], low[0], multiplier, averageTrueRangeData[1]);
+      finalUpperBand = getFinalUpperBand(upperBand, previousFinalUpperBand, close[1]);
+      finalLowerBand = getFinalLowerBand(lowerBand, previousFinalLowerBand, close[1]);
+      superTrend = getSuperTrend(previousSuperTrend, previousFinalUpperBand,previousFinalLowerBand,
+      finalUpperBand,finalLowerBand,close[1]);
+      
       prevousCandleTime = time[1];
       
-      if (previousUpperBand != 0 && previousLowerBand != 0)
+      if (finalUpperBand != 0 && finalLowerBand != 0 && previousFinalUpperBand != 0 && previousFinalLowerBand != 0)
       {
          string upperBandName = TimeToString(time[1]) + "_" + TimeToString(time[0]) + "Upperband";
          string lowerBandName = TimeToString(time[1]) + "-"+TimeToString(time[0]) + "Lowerband";
+         string bandName = TimeToString(time[1]) + "-"+TimeToString(time[0]) + "Band";
+         
          Print("Draw upper band, ", 
-            drawBand(previousUpperBand, 
-               time[1], upperBand,
-               time[0], upperBandName, clrCornflowerBlue), 
-            ", Price=", upperBand, 
+            drawBand(previousSuperTrend, 
+               time[1], superTrend,
+               time[0], bandName, clrCornflowerBlue), 
+            ", Price=", superTrend, 
             " time=", time[0]);
          
-         Print("Draw lower band, ", 
-            drawBand(previousLowerBand, 
-               time[1], lowerBand,
+         /*Print("Draw lower band, ", 
+            drawBand(previousFinalLowerBand, 
+               time[1], finalLowerBand,
                time[0], lowerBandName, clrLemonChiffon), 
-            ", Price=", upperBand, 
-            " time=", time[0]);
+            ", Price=", finalLowerBand, 
+            " time=", time[0]);*/
+            
       }
       
       previousUpperBand = upperBand;
       previousLowerBand = lowerBand;
+      previousFinalUpperBand = finalUpperBand;
+      previousFinalLowerBand = finalLowerBand;
    }
 
    return(rates_total);
+}
+/*
+   Get Super Trend
+*/
+/*
+   SuperTrend = if((Previous SuperTrend = Previous Final Upperband) and 
+   (Current Close <= Current Final Upperband))Then Current Final Upperband
+   
+   If ((Previous SuperTrend = Previous Final Upperband) and 
+   (Current Close > Current Final Upperband)) Then Current Final Lowerband
+   
+   Else
+   
+   if((Previous SuperTrend = Previous Final Lowerband) and 
+   (Current Close >= Current Final Lowerband))Then Current Final Lowerband
+   
+   Else
+
+   if((Previous SuperTrend = Previous Final Lowerband) and 
+   (Current Close < Current Final Upperband))Then Current Final Upperband
+*/
+double getSuperTrend(double _previousSuperTrend, 
+   double _previousFinalUpperBand,double _previousFinalLowerBand,
+   double _currentFinalUpperBand, double _currentFinalLowerBand,
+   double _currentClose)
+{
+   double _superTrend = 0;
+   
+   if ((_previousSuperTrend == _previousFinalUpperBand) &&
+       (_currentClose <= _currentFinalUpperBand))
+   {
+         _superTrend =_currentFinalUpperBand;
+   }
+   if((_previousSuperTrend == _previousFinalUpperBand) && 
+      (_currentClose > _currentFinalUpperBand))
+   {
+      _superTrend = _currentFinalLowerBand;
+   }
+   else if((_previousSuperTrend == _previousFinalLowerBand) &&
+      (_currentClose >= _currentFinalLowerBand))
+   {
+      _superTrend = _currentFinalLowerBand;
+   }
+   else if((_previousSuperTrend == _previousFinalLowerBand) &&
+      (_currentClose < _currentFinalUpperBand))
+   {
+      _superTrend = _currentFinalUpperBand;
+   }
+   
+   return _superTrend;
+}
+/*
+   Get Final Bands
+*/
+// Get Final Lower Band
+/*
+   Final Lowerband = If Current Basic Lowerband > Previous Final Lowerband OR
+   Previous Close < Previous Final Lowerband Then Current Basic Lowerband Else Previous Final Lowerband
+*/
+double getFinalLowerBand(double _currentbasicLowerBand, double _previousFinalLowerBand, double _previousClose)
+{
+   double _currentBand;
+   
+   if (_currentbasicLowerBand > _previousFinalLowerBand || _previousClose < _previousFinalLowerBand)
+   {
+      _currentBand = _currentbasicLowerBand;
+   }
+   else
+   {
+      _currentBand = _previousFinalLowerBand;
+   }
+
+   return _currentBand;
+}
+// Get Final Upper Band
+/*
+   Final Upperband = If Current Basic Upperband < Previous Final Upperband OR
+   Previous Close > Previous Final Upperband Then Current Basic Upperband Else Previous Final Upperband
+*/
+double getFinalUpperBand(double _currentbasicUpperBand, double _previousFinalUpperBand, double _previousClose)
+{
+   double _currentBand;
+   
+   if (_currentbasicUpperBand < _previousFinalUpperBand || _previousClose > _previousFinalUpperBand)
+   {
+      _currentBand = _currentbasicUpperBand;
+   }
+   else
+   {
+      _currentBand = _previousFinalUpperBand;
+   }
+
+   return _currentBand;
 }
 /*
    Draw band and give it a color
