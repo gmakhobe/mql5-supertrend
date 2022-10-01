@@ -88,18 +88,18 @@ int OnCalculate(
          string bandName = TimeToString(time[1]) + "-"+TimeToString(time[0]) + "Band";
          
          Print("Draw upper band, ", 
-            drawBand(previousSuperTrend, 
-               time[1], superTrend,
+            drawBand(previousFinalUpperBand, 
+               time[1], finalUpperBand,
                time[0], bandName, clrCornflowerBlue), 
-            ", Price=", superTrend, 
+            ", Price=", finalUpperBand, 
             " time=", time[0]);
          
-         /*Print("Draw lower band, ", 
+         Print("Draw lower band, ", 
             drawBand(previousFinalLowerBand, 
                time[1], finalLowerBand,
                time[0], lowerBandName, clrLemonChiffon), 
             ", Price=", finalLowerBand, 
-            " time=", time[0]);*/
+            " time=", time[0]);
             
       }
       
