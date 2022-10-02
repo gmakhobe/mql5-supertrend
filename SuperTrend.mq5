@@ -12,7 +12,7 @@
 input int lookbackPeriod = 10;
 // Global Variables
 string pairSymbol = Symbol();
-int multiplier = 4;
+int multiplier = 3;
 int atrHandler;
 datetime prevousCandleTime;
 double previousUpperBand = 0;
@@ -54,6 +54,28 @@ int OnCalculate(
    const long& volume[],
    const int& spread[])
 {
+   /* Convert Price Data to Price series */
+   bool asSeries = true;
+
+   ArraySetAsSeries(time,asSeries);
+   ArraySetAsSeries(high,asSeries);
+   ArraySetAsSeries(low,asSeries);
+   ArraySetAsSeries(close,asSeries);
+
+   superTrend(time[0], time[1], high[0], low[0], close[1], previousUpperBand, previousLowerBand, 
+   previousFinalUpperBand, previousFinalLowerBand, atrHandler);
+
+   return(rates_total);
+}
+/*
+   SuperTrend: Main function handling SuperTrend fuctionality
+*/
+void superTrend(datetime _time_0, datetime _time_1, double _high_0, double _low_0, double _close_1,
+   double& _previousUpperBand, double& _previousLowerBand, double& _previousFinalUpperBand, double& _previousFinalLowerBand,
+   int& _atrHandler)
+{
+   string upperBandName = TimeToString(_time_1) + "_" + TimeToString(_time_0) + "Upperband";
+   string lowerBandName = TimeToString(_time_1) + "-"+TimeToString(_time_0) + "Lowerband";
    uint dataPoints = 2;
    double averageTrueRangeData[];
    double lowerBand;
@@ -61,75 +83,32 @@ int OnCalculate(
    double finalLowerBand;
    double finalUpperBand;
    double superTrend = 0;
-   bool asSeries = true;
    
-   /* Convert Price Data to Price series */
-   ArraySetAsSeries(time,asSeries);
-   ArraySetAsSeries(high,asSeries);
-   ArraySetAsSeries(low,asSeries);
-   ArraySetAsSeries(close,asSeries);
-   
-   if (prevousCandleTime != time[1])
+   if (prevousCandleTime != _time_1)
    {
-      averageTrueRangeIndicatorData(averageTrueRangeData, atrHandler, dataPoints);
-      upperBand = getBasicUpperBand(high[0], low[0], multiplier, averageTrueRangeData[1]);
-      lowerBand = getBasicLowerBand(high[0], low[0], multiplier, averageTrueRangeData[1]);
-      finalUpperBand = getFinalUpperBand(upperBand, previousFinalUpperBand, close[1]);
-      finalLowerBand = getFinalLowerBand(lowerBand, previousFinalLowerBand, close[1]);
+      averageTrueRangeIndicatorData(averageTrueRangeData, _atrHandler, dataPoints);
+      upperBand = getBasicUpperBand(_high_0, _low_0, multiplier, averageTrueRangeData[1]);
+      lowerBand = getBasicLowerBand(_high_0, _low_0, multiplier, averageTrueRangeData[1]);
+      finalUpperBand = getFinalUpperBand(upperBand, previousFinalUpperBand, _close_1);
+      finalLowerBand = getFinalLowerBand(lowerBand, previousFinalLowerBand, _close_1);
       superTrend = getSuperTrend(previousSuperTrend, previousFinalUpperBand,previousFinalLowerBand,
-      finalUpperBand,finalLowerBand,close[1]);
-      
-      prevousCandleTime = time[1];
+      finalUpperBand,finalLowerBand,_close_1);
+      prevousCandleTime = _time_1;
       
       if (finalUpperBand != 0 && finalLowerBand != 0 && previousFinalUpperBand != 0 && previousFinalLowerBand != 0)
       {
-         string upperBandName = TimeToString(time[1]) + "_" + TimeToString(time[0]) + "Upperband";
-         string lowerBandName = TimeToString(time[1]) + "-"+TimeToString(time[0]) + "Lowerband";
-         string bandName = TimeToString(time[1]) + "-"+TimeToString(time[0]) + "Band";
-         
-         Print("Draw upper band, ", 
-            drawBand(previousFinalUpperBand, 
-               time[1], finalUpperBand,
-               time[0], bandName, clrCornflowerBlue), 
-            ", Price=", finalUpperBand, 
-            " time=", time[0]);
-         
-         Print("Draw lower band, ", 
-            drawBand(previousFinalLowerBand, 
-               time[1], finalLowerBand,
-               time[0], lowerBandName, clrLemonChiffon), 
-            ", Price=", finalLowerBand, 
-            " time=", time[0]);
-            
+         drawBand(previousFinalUpperBand, _time_1, finalUpperBand, _time_0, upperBandName, clrCornflowerBlue);
+         drawBand(previousFinalLowerBand, _time_1, finalLowerBand, _time_0, lowerBandName, clrLemonChiffon);       
       }
       
-      previousUpperBand = upperBand;
-      previousLowerBand = lowerBand;
-      previousFinalUpperBand = finalUpperBand;
-      previousFinalLowerBand = finalLowerBand;
+      _previousUpperBand = upperBand;
+      _previousLowerBand = lowerBand;
+      _previousFinalUpperBand = finalUpperBand;
+      _previousFinalLowerBand = finalLowerBand;
    }
-
-   return(rates_total);
 }
 /*
    Get Super Trend
-*/
-/*
-   SuperTrend = if((Previous SuperTrend = Previous Final Upperband) and 
-   (Current Close <= Current Final Upperband))Then Current Final Upperband
-   
-   If ((Previous SuperTrend = Previous Final Upperband) and 
-   (Current Close > Current Final Upperband)) Then Current Final Lowerband
-   
-   Else
-   
-   if((Previous SuperTrend = Previous Final Lowerband) and 
-   (Current Close >= Current Final Lowerband))Then Current Final Lowerband
-   
-   Else
-
-   if((Previous SuperTrend = Previous Final Lowerband) and 
-   (Current Close < Current Final Upperband))Then Current Final Upperband
 */
 double getSuperTrend(double _previousSuperTrend, 
    double _previousFinalUpperBand,double _previousFinalLowerBand,
