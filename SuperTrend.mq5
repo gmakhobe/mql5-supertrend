@@ -14,12 +14,17 @@ input int lookbackPeriod = 10;
 string pairSymbol = Symbol();
 int multiplier = 3;
 int atrHandler;
+
 datetime prevousCandleTime;
+
 double previousUpperBand = 0;
 double previousLowerBand = 0;
 double previousFinalUpperBand = 0;
 double previousFinalLowerBand = 0;
 double previousSuperTrend = 0;
+
+bool isFirstExecution = true;
+bool isUpTrend = NULL;
 /*
    Initialize indicator
 */
@@ -62,20 +67,18 @@ int OnCalculate(
    ArraySetAsSeries(low,asSeries);
    ArraySetAsSeries(close,asSeries);
 
-   superTrend(time[0], time[1], high[0], low[0], close[1], previousUpperBand, previousLowerBand, 
-   previousFinalUpperBand, previousFinalLowerBand, atrHandler);
+   superTrend(time[0], time[1], prevousCandleTime, high[1], low[1], close[1], previousUpperBand, previousLowerBand, 
+   previousFinalUpperBand, previousFinalLowerBand, atrHandler, isFirstExecution, isUpTrend);
 
    return(rates_total);
 }
 /*
    SuperTrend: Main function handling SuperTrend fuctionality
 */
-void superTrend(datetime _time_0, datetime _time_1, double _high_0, double _low_0, double _close_1,
+void superTrend(datetime _time_0, datetime _time_1, datetime& _prevousCandleTime, double _high_1, double _low_1, double _close_1,
    double& _previousUpperBand, double& _previousLowerBand, double& _previousFinalUpperBand, double& _previousFinalLowerBand,
-   int& _atrHandler)
+   int& _atrHandler, bool& _isFirstExecution, bool& _isUpTrend)
 {
-   string upperBandName = TimeToString(_time_1) + "_" + TimeToString(_time_0) + "Upperband";
-   string lowerBandName = TimeToString(_time_1) + "-"+TimeToString(_time_0) + "Lowerband";
    uint dataPoints = 2;
    double averageTrueRangeData[];
    double lowerBand;
@@ -87,18 +90,35 @@ void superTrend(datetime _time_0, datetime _time_1, double _high_0, double _low_
    if (prevousCandleTime != _time_1)
    {
       averageTrueRangeIndicatorData(averageTrueRangeData, _atrHandler, dataPoints);
-      upperBand = getBasicUpperBand(_high_0, _low_0, multiplier, averageTrueRangeData[1]);
-      lowerBand = getBasicLowerBand(_high_0, _low_0, multiplier, averageTrueRangeData[1]);
+      upperBand = getBasicUpperBand(_high_1, _low_1, multiplier, averageTrueRangeData[1]);
+      lowerBand = getBasicLowerBand(_high_1, _low_1, multiplier, averageTrueRangeData[1]);
       finalUpperBand = getFinalUpperBand(upperBand, previousFinalUpperBand, _close_1);
       finalLowerBand = getFinalLowerBand(lowerBand, previousFinalLowerBand, _close_1);
       superTrend = getSuperTrend(previousSuperTrend, previousFinalUpperBand,previousFinalLowerBand,
       finalUpperBand,finalLowerBand,_close_1);
-      prevousCandleTime = _time_1;
+      _prevousCandleTime = _time_1;
       
       if (finalUpperBand != 0 && finalLowerBand != 0 && previousFinalUpperBand != 0 && previousFinalLowerBand != 0)
-      {
-         drawBand(previousFinalUpperBand, _time_1, finalUpperBand, _time_0, upperBandName, clrCornflowerBlue);
-         drawBand(previousFinalLowerBand, _time_1, finalLowerBand, _time_0, lowerBandName, clrLemonChiffon);       
+      {   
+         if (_close_1 > upperBand && !_isFirstExecution)
+         {
+            _isUpTrend = true;
+         }
+ 
+         if (_close_1 < lowerBand && !_isFirstExecution)
+         {
+            _isUpTrend = false;
+         }
+         Print("Is Close > Upper = ", _close_1 > upperBand, "\n Close= ", _close_1, " - UpperBand= ", upperBand);
+         Print("Is Close > Lower = ", _close_1 > lowerBand, "\n Close= ", _close_1, " - UpperBand= ", lowerBand);
+         
+         //Print("_isFirstExecution = ", _isFirstExecution);
+         if (_isFirstExecution)
+         {
+            checkFirstExecutionXOver(_isFirstExecution, _isUpTrend, finalUpperBand, finalLowerBand, previousFinalUpperBand, previousFinalLowerBand);
+         }
+         printSuperTrend(_isFirstExecution, _isUpTrend, finalUpperBand, finalLowerBand, previousFinalUpperBand, previousFinalLowerBand, 
+         _time_0, _time_1); 
       }
       
       _previousUpperBand = upperBand;
@@ -108,6 +128,65 @@ void superTrend(datetime _time_0, datetime _time_1, double _high_0, double _low_
    }
 }
 /*
+   Print our super trend
+*/
+void printSuperTrend(bool& _isFirstExecution, bool& _isUpTrend, double _finalUpperBand, double _finalLowerBand, 
+   double _previousFinalUpperBand, double _previousFinalLowerBand, datetime _time_0, datetime _time_1)
+{
+   string _upperBandName = TimeToString(_time_1) + "-" + TimeToString(_time_0) + "Upperband";
+   string _lowerBandName = TimeToString(_time_1) + "-"+TimeToString(_time_0) + "Lowerband";
+   //_isFirstExecution = true;
+   //_isUpTrend = NULL;
+
+   if (_isFirstExecution && _isUpTrend == NULL)
+   {
+      drawBand(_previousFinalUpperBand, _time_1, _finalUpperBand, _time_0, _upperBandName, clrCornflowerBlue);
+      drawBand(_previousFinalLowerBand, _time_1, _finalLowerBand, _time_0, _lowerBandName, clrLemonChiffon);
+      Print("Is Neutral Trend!");
+   }
+
+   if (!_isFirstExecution && _isUpTrend)
+   {
+      drawBand(_previousFinalLowerBand, _time_1, _finalLowerBand, _time_0, _lowerBandName, clrLemonChiffon);
+   }
+   
+   if (!_isFirstExecution && !_isUpTrend)
+   {
+      drawBand(_previousFinalUpperBand, _time_1, _finalUpperBand, _time_0, _upperBandName, clrCornflowerBlue);
+   }
+}
+/*
+   Check if it the program has been recently run and the crossover has not occured
+*/
+void checkFirstExecutionXOver(bool& _isFirstExecution, bool& _isUpTrend, double _finalUpperBand, double _finalLowerBand, 
+   double _previousFinalUpperBand, double _previousFinalLowerBand)
+{
+   if (_isFirstExecution && (_previousFinalUpperBand >= _finalUpperBand) && (_previousFinalLowerBand <= _finalLowerBand))
+   {
+      _isFirstExecution = true;
+      return ;
+   }
+   else
+   {
+      _isFirstExecution = false;
+   }
+   
+   // We are trending down
+   if (!_isFirstExecution && (_previousFinalUpperBand >= _finalUpperBand) && _isUpTrend == NULL)
+   {
+      _isUpTrend = false;
+      return ;
+   }
+   
+   // We are trending up
+   if (!_isFirstExecution && (_previousFinalLowerBand <= _finalLowerBand) && _isUpTrend == NULL)
+   {
+      _isUpTrend = true;
+      return ;
+   }
+   
+}
+/*
    Get Super Trend
 */
 double getSuperTrend(double _previousSuperTrend, 
@@ -115,30 +194,9 @@ double getSuperTrend(double _previousSuperTrend,
    double _currentFinalUpperBand, double _currentFinalLowerBand,
    double _currentClose)
 {
-   double _superTrend = 0;
+   // To-Do
    
-   if ((_previousSuperTrend == _previousFinalUpperBand) &&
-       (_currentClose <= _currentFinalUpperBand))
-   {
-         _superTrend =_currentFinalUpperBand;
-   }
-   if((_previousSuperTrend == _previousFinalUpperBand) && 
-      (_currentClose > _currentFinalUpperBand))
-   {
-      _superTrend = _currentFinalLowerBand;
-   }
-   else if((_previousSuperTrend == _previousFinalLowerBand) &&
-      (_currentClose >= _currentFinalLowerBand))
-   {
-      _superTrend = _currentFinalLowerBand;
-   }
-   else if((_previousSuperTrend == _previousFinalLowerBand) &&
-      (_currentClose < _currentFinalUpperBand))
-   {
-      _superTrend = _currentFinalUpperBand;
-   }
-   
-   return _superTrend;
+   return (0);
 }
 /*
    Get Final Bands
