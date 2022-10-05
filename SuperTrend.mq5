@@ -100,25 +100,25 @@ void superTrend(datetime _time_0, datetime _time_1, datetime& _prevousCandleTime
       
       if (finalUpperBand != 0 && finalLowerBand != 0 && previousFinalUpperBand != 0 && previousFinalLowerBand != 0)
       {   
-         if (_close_1 > upperBand && !_isFirstExecution)
+         if (_close_1 > previousFinalUpperBand && !_isFirstExecution)
          {
             _isUpTrend = true;
          }
  
-         if (_close_1 < lowerBand && !_isFirstExecution)
+         if (_close_1 < previousFinalLowerBand && !_isFirstExecution)
          {
             _isUpTrend = false;
          }
-         Print("Is Close > Upper = ", _close_1 > upperBand, "\n Close= ", _close_1, " - UpperBand= ", upperBand);
-         Print("Is Close > Lower = ", _close_1 > lowerBand, "\n Close= ", _close_1, " - UpperBand= ", lowerBand);
+         Print("Is Close > Upper = ", _close_1 > previousFinalUpperBand, "\n Close= ", _close_1, " - UpperBand= ", previousFinalUpperBand);
+         Print("Is Close < Lower = ", _close_1 > previousFinalLowerBand, "\n Close= ", _close_1, " - UpperBand= ", previousFinalLowerBand);
          
          //Print("_isFirstExecution = ", _isFirstExecution);
          if (_isFirstExecution)
          {
             checkFirstExecutionXOver(_isFirstExecution, _isUpTrend, finalUpperBand, finalLowerBand, previousFinalUpperBand, previousFinalLowerBand);
          }
-         printSuperTrend(_isFirstExecution, _isUpTrend, finalUpperBand, finalLowerBand, previousFinalUpperBand, previousFinalLowerBand, 
-         _time_0, _time_1); 
+         printSuperTrend(_isFirstExecution, _isUpTrend, finalUpperBand, finalLowerBand, previousFinalUpperBand, 
+         previousFinalLowerBand, _time_0, _time_1);
       }
       
       _previousUpperBand = upperBand;
@@ -140,19 +140,19 @@ void printSuperTrend(bool& _isFirstExecution, bool& _isUpTrend, double _finalUpp
 
    if (_isFirstExecution && _isUpTrend == NULL)
    {
-      drawBand(_previousFinalUpperBand, _time_1, _finalUpperBand, _time_0, _upperBandName, clrCornflowerBlue);
-      drawBand(_previousFinalLowerBand, _time_1, _finalLowerBand, _time_0, _lowerBandName, clrLemonChiffon);
+      drawBand(_previousFinalUpperBand, _time_1, _finalUpperBand, _time_0, _upperBandName, clrAqua);
+      drawBand(_previousFinalLowerBand, _time_1, _finalLowerBand, _time_0, _lowerBandName, clrAqua);
       Print("Is Neutral Trend!");
    }
 
    if (!_isFirstExecution && _isUpTrend)
    {
-      drawBand(_previousFinalLowerBand, _time_1, _finalLowerBand, _time_0, _lowerBandName, clrLemonChiffon);
+      drawBand(_previousFinalLowerBand, _time_1, _finalLowerBand, _time_0, _lowerBandName, clrGreen);
    }
    
    if (!_isFirstExecution && !_isUpTrend)
    {
-      drawBand(_previousFinalUpperBand, _time_1, _finalUpperBand, _time_0, _upperBandName, clrCornflowerBlue);
+      drawBand(_previousFinalUpperBand, _time_1, _finalUpperBand, _time_0, _upperBandName, clrRed);
    }
 }
 /*
